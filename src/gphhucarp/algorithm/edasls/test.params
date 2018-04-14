@@ -1,0 +1,99 @@
+# ==============================
+# The training results
+# ==============================
+train-path = /Users/yimei/Dropbox/HHUCARP/
+num-trains = 1
+
+# ==============================
+# The test set
+# ==============================
+state = ec.simple.SimpleEvolutionState
+eval = ec.simple.SimpleEvaluator
+eval.problem = gphhucarp.algorithm.edasls.EDASLSProblem
+eval.problem.eval-model = gphhucarp.gp.evaluation.ReactiveEvaluationModel
+eval.problem.eval-model.objectives = 1
+eval.problem.eval-model.objectives.0 = total-cost
+eval.problem.eval-model.instances = 1
+eval.problem.eval-model.instances.0.file = gdb/gdb8.dat
+eval.problem.eval-model.instances.0.samples = 500p
+eval.problem.eval-model.instances.0.vehicles = from-file
+eval.problem.eval-model.instances.0.demand-uncertainty-level = 0.2
+eval.problem.eval-model.instances.0.cost-uncertainty-level = 0.2
+eval.problem.eval-model.seed = 25234
+
+
+
+
+
+
+
+
+
+
+
+# ========================================================================
+# ========================================================================
+# The below parameters are only for making ECJ runnable.
+# They have nothing to do with the GP testing.
+# ========================================================================
+# ========================================================================
+
+# ==============================
+# Administrative parameters
+# ==============================
+evalthreads = 1
+breedthreads = 1
+seed.0 = 0
+checkpoint = false
+checkpoint-modulo = 1
+checkpoint-prefix = ec
+
+# ==============================
+# Basic evolution parameters
+# ==============================
+state = gphhucarp.algorithm.edasls.EDASLSEvolutionState
+init = gphhucarp.algorithm.edasls.EDASLSInitializer
+breed =	gphhucarp.algorithm.edasls.EDASLSBreeder
+breed.ls-prob = 0.1
+finish = ec.simple.SimpleFinisher
+exch = ec.simple.SimpleExchanger
+eval = ec.simple.SimpleEvaluator
+stat = ec.simple.SimpleStatistics
+stat.file = $job.0.out.stat
+#stat.num-children = 1
+#stat.child.0 = ec.gp.koza.KozaShortStatistics
+#stat.child.0.file = $outtabular.stat
+
+generations = 51
+quit-on-run-complete = true
+
+pop = ec.Population
+pop.subpops = 1
+pop.subpop.0 = ec.Subpopulation
+pop.subpop.0.size =	120
+
+
+# ==============================
+# GP general parameters
+# ==============================
+
+# GP population parameters
+pop.subpop.0.species = gphhucarp.algorithm.edasls.GiantTaskSequenceSpecies
+pop.subpop.0.species.ind = gphhucarp.algorithm.edasls.GiantTaskSequenceIndividual
+
+pop.subpop.0.species.fitness = ec.multiobjective.MultiObjectiveFitness
+pop.subpop.0.species.fitness.num-objectives = 1
+pop.subpop.0.species.fitness.maximize = false
+pop.subpop.0.duplicate-retries = 100
+
+# Initializer
+init = gphhucarp.algorithm.edasls.EDASLSInitializer
+
+# Breeding pipeline -- basically does nothing in this algorithm
+pop.subpop.0.species.pipe = ec.breed.ReproductionPipeline
+
+# Selection for reproduction
+breed.reproduce.source.0 = ec.select.TournamentSelection
+
+# Tournament selection for reproduction
+select.tournament.size = 7
