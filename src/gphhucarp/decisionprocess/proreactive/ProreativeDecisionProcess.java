@@ -34,4 +34,13 @@ public class ProreativeDecisionProcess extends DecisionProcess {
             eventQueue.add(new ProreactiveServingEvent(0,
                     state.getSolution().getRoute(i), plan.getRoute(i), 0));
     }
+
+    @Override
+    protected ProreativeDecisionProcess clone() {
+        DecisionProcessState clonedState = state.clone();
+        PriorityQueue<DecisionProcessEvent> clonedEQ = new PriorityQueue<>(eventQueue);
+        Solution<TaskSeqRoute> clonedPlan = plan.clone();
+
+        return new ProreativeDecisionProcess(clonedState, clonedEQ, routingPolicy, clonedPlan);
+    }
 }

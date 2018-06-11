@@ -51,7 +51,6 @@ public class GPHHEvolutionState extends TerminalERCEvolutionState {
 
     protected Map<String, DescriptiveStatistics> statisticsMap;
 	protected File statFile;
-    protected double duration;
 
 	public Map<String, DescriptiveStatistics> getStatisticsMap() {
 		return statisticsMap;
@@ -64,6 +63,9 @@ public class GPHHEvolutionState extends TerminalERCEvolutionState {
 	public long getJobSeed() {
 		return jobSeed;
 	}
+
+	protected long start, finish;
+	protected double duration;
 
 	public void initStatFile() {
 		statFile = new File("job." + jobSeed + ".stat.csv");
@@ -137,6 +139,12 @@ public class GPHHEvolutionState extends TerminalERCEvolutionState {
 			for (int i = 0; i < subpops; i++)
 				terminalSets.add(UCARPPrimitiveSet.extendedTerminalSet());
 		}
+		else if (terminalFrom.equals("seq")) {
+			terminalSets = new ArrayList<>();
+
+			for (int i = 0; i < subpops; i++)
+				terminalSets.add(UCARPPrimitiveSet.seqTerminalSet());
+		}
 		else {
 			initTerminalSetsFromCsv(new File(terminalFrom), UCARPPrimitiveSet.basicTerminalSet());
 		}
@@ -201,6 +209,8 @@ public class GPHHEvolutionState extends TerminalERCEvolutionState {
 		initStatFile();
 		setupStatistics();
 
+		start = util.Timer.getCpuTime();
+
 		int result = R_NOTDONE;
 		while ( result == R_NOTDONE ) {
 			result = evolve();
@@ -211,7 +221,6 @@ public class GPHHEvolutionState extends TerminalERCEvolutionState {
 
     @Override
 	public int evolve() {
-		long start = util.Timer.getCpuTime();
 
 	    if (generation > 0)
 	        output.message("Generation " + generation);
@@ -221,7 +230,14 @@ public class GPHHEvolutionState extends TerminalERCEvolutionState {
 	    evaluator.evaluatePopulation(this);
 	    statistics.postEvaluationStatistics(this);
 
-        writeToStatFile();
+		finish = util.Timer.getCpuTime();
+		duration = 1.0 * (finish - start) / 1000000000;
+
+		output.message("Generation " + generation + " elapsed " + duration + " seconds.");
+
+		writeToStatFile();
+
+		start = util.Timer.getCpuTime();
 
 	    // SHOULD WE QUIT?
 	    if (evaluator.runComplete(this) && quitOnRunComplete) {
@@ -276,11 +292,6 @@ public class GPHHEvolutionState extends TerminalERCEvolutionState {
 			ReactiveGPHHProblem problem = (ReactiveGPHHProblem)evaluator.p_problem;
 			problem.rotateEvaluationModel();
 		}
-
-		long finish = util.Timer.getCpuTime();
-		duration = (finish - start) / 1000000000;
-
-		output.message("Generation " + generation + " elapsed " + duration + " seconds.");
 
 	    // INCREMENT GENERATION AND CHECKPOINT
 	    generation++;

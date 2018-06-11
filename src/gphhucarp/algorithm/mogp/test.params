@@ -1,5 +1,55 @@
-#print-unaccessed-params = true
-#print-used-params = true
+# ==============================
+# The training results
+# ==============================
+policy-type = gp-evolved
+#policy-type = manual
+
+# for manual policies
+manual-policies = 1
+manual-policies.0 = gphhucarp.decisionprocess.routingpolicy.PathScanning5Policy
+
+# for gp-evolved policies
+train-path = /Users/yimei/Dropbox/HHUCARP/
+solution-type = simple-solution
+fitness-type = simple-fitness
+num-trains = 1
+
+# ==============================
+# The test set
+# ==============================
+state = ec.simple.SimpleEvolutionState
+eval = ec.simple.SimpleEvaluator
+eval.problem = gphhucarp.gp.ReactiveGPHHProblem
+eval.problem.pool-filter = gphhucarp.decisionprocess.poolfilter.ExpFeasiblePoolFilter
+eval.problem.tie-breaker = gphhucarp.decisionprocess.tiebreaker.SimpleTieBreaker
+eval.problem.data = gputils.DoubleData
+eval.problem.eval-model = gphhucarp.gp.evaluation.ReactiveEvaluationModel
+eval.problem.eval-model.objectives = 1
+eval.problem.eval-model.objectives.0 = total-cost
+eval.problem.eval-model.instances = 1
+eval.problem.eval-model.instances.0.file = egl/egl-e1-A.dat
+eval.problem.eval-model.instances.0.samples = 500
+eval.problem.eval-model.instances.0.vehicles = from-file
+eval.problem.eval-model.instances.0.demand-uncertainty-level = 0.2
+eval.problem.eval-model.instances.0.cost-uncertainty-level = 0.2
+eval.problem.eval-model.seed = 25234
+
+
+
+
+
+
+
+
+
+
+
+# ========================================================================
+# ========================================================================
+# The below parameters are only for making ECJ runnable.
+# They have nothing to do with the GP testing.
+# ========================================================================
+# ========================================================================
 
 # ==============================
 # Administrative parameters
@@ -20,7 +70,7 @@ exch = ec.simple.SimpleExchanger
 breed =	ec.simple.SimpleBreeder
 eval = ec.simple.SimpleEvaluator
 stat = ec.simple.SimpleStatistics
-stat.file = $job.0.out.stat
+stat.file = $out.stat
 #stat.num-children = 1
 #stat.child.0 = ec.gp.koza.KozaShortStatistics
 #stat.child.0.file = $outtabular.stat
@@ -185,7 +235,7 @@ gp.adf-stack.context = ec.gp.ADFContext
 # GP function set parameters
 gp.fs.size = 1
 gp.fs.0.name = f0
-gp.fs.0.size = 8
+gp.fs.0.size = 7
 gp.fs.0.func.0 = gputils.terminal.TerminalERCUniform
 gp.fs.0.func.0.nc = nc0
 gp.fs.0.func.1 = gputils.function.Add
@@ -202,35 +252,3 @@ gp.fs.0.func.6 = gputils.function.Min
 gp.fs.0.func.6.nc = nc2
 gp.fs.0.func.7 = gputils.function.If
 gp.fs.0.func.7.nc = nc3
-
-# ==============================
-# The output format
-# ==============================
-#gp.tree.print-style = c
-#pop.subpop.0.species.ind.tree.0.c-operators = false
-#gp.tree.print-style = dot
-
-# ==============================
-# The problem
-# ==============================
-
-eval.problem = gphhucarp.gp.ReactiveGPHHProblem
-eval.problem.pool-filter = gphhucarp.decisionprocess.poolfilter.ExpFeasibleNoRefillPoolFilter
-eval.problem.tie-breaker = gphhucarp.decisionprocess.tiebreaker.SimpleTieBreaker
-eval.problem.data = gputils.DoubleData
-eval.problem.eval-model = gphhucarp.gp.evaluation.ReactiveEvaluationModel
-eval.problem.eval-model.objectives = 1
-eval.problem.eval-model.objectives.0 = total-cost
-eval.problem.eval-model.instances = 1
-eval.problem.eval-model.instances.0.file = gdb/gdb1.dat
-eval.problem.eval-model.instances.0.samples = 5
-eval.problem.eval-model.instances.0.vehicles = from-file
-eval.problem.eval-model.instances.0.demand-uncertainty-level = 0.2
-eval.problem.eval-model.instances.0.cost-uncertainty-level = 0.2
-
-# ==============================
-# The GPHH evolution state parameters
-# ==============================
-terminals-from = extended
-include-erc = true
-rotate-eval-model = true

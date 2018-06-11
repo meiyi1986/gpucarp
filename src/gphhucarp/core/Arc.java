@@ -34,9 +34,6 @@ public class Arc implements Comparable<Arc> {
     private AbstractRealSampler demandSampler; // the sampler for the demand.
     private AbstractRealSampler costSampler; // the sampler for the deadheading cost.
 
-    private double remainingDemandFraction; // the remaining demand fraction to be served for tasks.
-                                            // 0 = completely served; 1 = not served at all.
-
     private double priority; // the priority for decision making process.
 
     public Arc(int from, int to, double demand,
@@ -75,10 +72,6 @@ public class Arc implements Comparable<Arc> {
         return costSampler.getMean();
     }
 
-    public double getRemainingDemandFraction() {
-        return remainingDemandFraction;
-    }
-
     public double getPriority() {
         return priority;
     }
@@ -89,10 +82,6 @@ public class Arc implements Comparable<Arc> {
 
     public void setInverse(Arc inverse) {
         this.inverse = inverse;
-    }
-
-    public void setRemainingDemandFraction(double remainingDemandFraction) {
-        this.remainingDemandFraction = remainingDemandFraction;
     }
 
     public void setPriority(double priority) {

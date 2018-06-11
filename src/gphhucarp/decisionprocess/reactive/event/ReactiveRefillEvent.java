@@ -10,6 +10,9 @@ import gphhucarp.decisionprocess.DecisionProcessEvent;
 import gphhucarp.decisionprocess.DecisionProcessState;
 import gphhucarp.decisionprocess.RoutingPolicy;
 
+import java.util.LinkedList;
+import java.util.List;
+
 /**
  * The reactive refill event occurs when the vehicle is going back to the depot.
  * The target node is the depot, and there is no next task.
@@ -51,11 +54,16 @@ public class ReactiveRefillEvent extends DecisionProcessEvent {
             // calculate the route-to-task map
             state.calcRouteToTaskMap(route);
 
+            // decide which task to serve next
+            List<Arc> pool = new LinkedList<>(state.getUnassignedTasks());
+
             ReactiveDecisionSituation rds = new ReactiveDecisionSituation(
-                    state.getUnassignedTasks(), route, state);
+                    pool, route, state);
 
             Arc nextTask = policy.next(rds);
+
             state.removeUnassignedTasks(nextTask);
+            route.setNextTask(nextTask);
 
             decisionProcess.getEventQueue().add(
                     new ReactiveServingEvent(route.getCost(), route, nextTask));

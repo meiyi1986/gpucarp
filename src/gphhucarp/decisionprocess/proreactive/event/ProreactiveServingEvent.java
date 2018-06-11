@@ -3,6 +3,7 @@ package gphhucarp.decisionprocess.proreactive.event;
 import gphhucarp.core.Arc;
 import gphhucarp.core.Graph;
 import gphhucarp.core.Instance;
+import gphhucarp.decisionprocess.reactive.event.ReactiveServingEvent;
 import gphhucarp.representation.route.NodeSeqRoute;
 import gphhucarp.representation.route.TaskSeqRoute;
 import gphhucarp.decisionprocess.DecisionProcess;
@@ -48,11 +49,10 @@ public class ProreactiveServingEvent extends DecisionProcessEvent {
             // skip serving the depot loop, direct serve the next task
             if (currNode == depot && nextTask.getTo() == depot) {
                 if (nextTaskIndex == 0) {
-                    nextTaskIndex ++;
+                    nextTaskIndex++;
 
                     decisionProcess.getEventQueue().add(
                             new ProreactiveServingEvent(route.getCost(), route, plan, nextTaskIndex));
-
                 }
 
                 return;
@@ -60,7 +60,8 @@ public class ProreactiveServingEvent extends DecisionProcessEvent {
 
             // start serving the next task if it arrives its head node
             double remainingCapacity = instance.getCapacity() - route.getDemand();
-            double remainingDemand = instance.getActDemand(nextTask) * nextTask.getRemainingDemandFraction();
+            double nextTaskRemainingFrac = state.getTaskRemainingDemandFrac(nextTask);
+            double remainingDemand = instance.getActDemand(nextTask) * nextTaskRemainingFrac;
 
             if (remainingDemand > remainingCapacity) {
                 // a route failure occurs, refill and then come back
@@ -69,38 +70,45 @@ public class ProreactiveServingEvent extends DecisionProcessEvent {
                 // add the partial service to the route
                 route.add(nextTask.getTo(), servedFraction, instance);
                 // update the remaining demand fraction of the task
-                nextTask.setRemainingDemandFraction(nextTask.getRemainingDemandFraction()-servedFraction);
+                state.setTaskRemainingDemandFrac(nextTask, nextTaskRemainingFrac - servedFraction);
                 // add a new event: go to the depot to refill, and come back to
                 // continue the failed service.
                 decisionProcess.getEventQueue().add(
                         new ProreactiveRefillThenServeEvent(route.getCost(), route, plan, nextTaskIndex));
-            }
-            else {
+            } else {
                 // no route failure occurs, complete the service successfully
-                route.add(nextTask.getTo(), nextTask.getRemainingDemandFraction(), instance);
+                route.add(nextTask.getTo(), nextTaskRemainingFrac, instance);
+                // update the remaining demand fraction of the task
+                state.setTaskRemainingDemandFrac(nextTask, 0.0);
                 // remove the task from the remaining tasks
                 decisionProcess.getState().removeRemainingTasks(nextTask);
 
-                // if all the planned tasks have been completed, close this route
-                if (nextTaskIndex == plan.size()-1)
-                    return;
+                // add a new serving event
+                decisionProcess.getEventQueue().add(
+                        new ProreactiveServingEvent(route.getCost(), route, plan, nextTaskIndex));
+            }
+        }
+        else if (currNode == nextTask.getTo() &&
+                Double.compare(state.getTaskRemainingDemandFrac(nextTask), 0.0) == 0) {
+            // if all the planned tasks have been completed, close this route
+            if (nextTaskIndex == plan.size() - 1)
+                return;
 
-                // go ahead to the next task
-                nextTaskIndex ++;
-                nextTask = plan.get(nextTaskIndex);
+            // go ahead to the next task
+            nextTaskIndex++;
+            nextTask = plan.get(nextTaskIndex);
 
-                boolean continueService = policy.continueService(nextTask, route, state);
+            boolean continueService = policy.continueService(nextTask, route, state);
 
-                if (continueService) {
-                    // if continue the service, then go to the next task
-                    decisionProcess.getEventQueue().add(
-                            new ProreactiveServingEvent(route.getCost(), route, plan, nextTaskIndex));
-                }
-                else {
-                    // go back to refill, and then go to serve the next task
-                    decisionProcess.getEventQueue().add(
-                            new ProreactiveRefillThenServeEvent(route.getCost(), route, plan, nextTaskIndex));
-                }
+            if (continueService) {
+                // if continue the service, then go to the next task
+                decisionProcess.getEventQueue().add(
+                        new ProreactiveServingEvent(route.getCost(), route, plan, nextTaskIndex));
+            }
+            else {
+                // go back to refill, and then go to serve the next task
+                decisionProcess.getEventQueue().add(
+                        new ProreactiveRefillThenServeEvent(route.getCost(), route, plan, nextTaskIndex));
             }
         }
         else {

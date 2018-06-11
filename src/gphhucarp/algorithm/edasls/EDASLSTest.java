@@ -80,10 +80,9 @@ public class EDASLSTest {
 
                 int numProcesses = 0;
                 for (InstanceSamples iSamples : testEvaluationModel.getInstanceSamples()) {
+                    chromosome.split(iSamples.getBaseInstance());
+
                     for (long seed : iSamples.getSeeds()) {
-
-                        chromosome.split(iSamples.getBaseInstance());
-
                         ProreativeDecisionProcess dp =
                                 DecisionProcess.initProreactive(iSamples.getBaseInstance(), seed,
                                         new FeasibilityPolicy(), chromosome.getSolution());
@@ -137,8 +136,8 @@ public class EDASLSTest {
 
                 // write the test results for each generation
                 for (int j = 0; j < result.getSolutions().size(); j++) {
-                    writer.write(i + "," + j + ",0," +
-                            "," + fitnessString(result, j) +
+                    writer.write(i + "," + j + "," +
+                            fitnessString(result, j) +
                             result.getTimeAtGen(j));
                     writer.newLine();
                 }

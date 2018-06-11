@@ -23,37 +23,52 @@ public class DecisionProcessState {
     private List<Arc> unassignedTasks;
     private Solution<NodeSeqRoute> solution;
 
+    private Map<Arc, Double> taskRemainingDemandFrac;
+
     // the task-to-task map: for each task, the outgoing remaining tasks are sorted
     // in the increasing order of distance from the task
     private Map<Arc, List<Arc>> taskToTaskMap;
 
     // the route-to-task map: for each task, the routes are sorted
-    // in the increasing order of distance to the task
+    // in the increasing order of the distance from its next decision node to the task
     private Map<Arc, List<NodeSeqRoute>> routeToTaskMap;
 
     public DecisionProcessState(Instance instance,
                                 long seed,
                                 List<Arc> remainingTasks,
                                 List<Arc> unassignedTasks,
-                                Solution<NodeSeqRoute> solution) {
+                                Solution<NodeSeqRoute> solution,
+                                Map<Arc, Double> taskRemainingDemandFrac) {
         this.instance = instance;
         this.seed = seed;
         this.remainingTasks = remainingTasks;
         this.unassignedTasks = unassignedTasks;
         this.solution = solution;
+        this.taskRemainingDemandFrac = taskRemainingDemandFrac;
 
         initTaskToTaskMap();
         initRouteToTaskMap();
     }
 
+    /**
+     * Construct the state by an instance.
+     * Initially, all the routes starts from the depot,
+     * and all the tasks are unserved.
+     * @param instance the instance.
+     * @param seed the seed.
+     * @param numRoutes the number of routes.
+     */
     public DecisionProcessState(Instance instance, long seed, int numRoutes) {
         this.instance = instance;
         this.seed = seed;
         remainingTasks = new LinkedList<>(instance.getTasks());
-        for (Arc task : remainingTasks)
-            task.setRemainingDemandFraction(1);
         unassignedTasks = new LinkedList<>(remainingTasks);
         solution = Solution.initialNodeSeqSolution(instance, numRoutes);
+        for (NodeSeqRoute route : solution.getRoutes())
+            route.setNextTask(instance.getDepotLoop());
+        taskRemainingDemandFrac = new HashMap<>();
+        for (Arc task : remainingTasks)
+            taskRemainingDemandFrac.put(task, 1.0);
 
         initTaskToTaskMap();
         initRouteToTaskMap();
@@ -85,6 +100,18 @@ public class DecisionProcessState {
 
     public Solution<NodeSeqRoute> getSolution() {
         return solution;
+    }
+
+    public Map<Arc, Double> getTaskRemainingDemandFracMap() {
+        return taskRemainingDemandFrac;
+    }
+
+    public double getTaskRemainingDemandFrac(Arc task) {
+        return taskRemainingDemandFrac.get(task);
+    }
+
+    public void setTaskRemainingDemandFrac(Arc task, double frac) {
+        taskRemainingDemandFrac.put(task, frac);
     }
 
     public Map<Arc, List<Arc>> getTaskToTaskMap() {
@@ -126,6 +153,8 @@ public class DecisionProcessState {
      */
     public void initTaskToTaskMap() {
         taskToTaskMap = new HashMap<>();
+        taskToTaskMap.put(instance.getDepotLoop(),
+                instance.getTaskToTaskMap().get(instance.getDepotLoop()));
         for (Arc task : instance.getTasks())
             taskToTaskMap.put(task, new LinkedList<>(instance.getTaskToTaskMap().get(task)));
     }
@@ -135,6 +164,8 @@ public class DecisionProcessState {
      */
     public void resetTaskToTaskMap() {
         taskToTaskMap.clear();
+        taskToTaskMap.put(instance.getDepotLoop(),
+                instance.getTaskToTaskMap().get(instance.getDepotLoop()));
         for (Arc task : instance.getTasks())
             taskToTaskMap.put(task, new LinkedList<>(instance.getTaskToTaskMap().get(task)));
     }
@@ -151,7 +182,7 @@ public class DecisionProcessState {
     }
 
     /**
-     * Reset the route-to-task map. Clear the map without creating a new one.
+     * Reset the route-to-task map. Clear the current map instead of creating a new one.
      */
     public void resetRouteToTaskMap() {
         routeToTaskMap.clear();
@@ -196,21 +227,31 @@ public class DecisionProcessState {
                 routeAdjacencyList.add(route);
             }
 
+            // exclude the current route id
             routeAdjacencyList.remove(currRoute);
 
+            // sort the routes with the increasing order of
+            // the distance from the next decision node to the task
             Collections.sort(routeAdjacencyList,
-                    (o1, o2) -> Double.compare(graph.getEstDistance(o1.currNode(), task.getFrom()),
-                            graph.getEstDistance(o2.currNode(), task.getFrom())));
+                    (o1, o2) -> Double.compare(graph.getEstDistance(o1.getNextTask().getTo(), task.getFrom()),
+                            graph.getEstDistance(o2.getNextTask().getTo(), task.getFrom())));
+        }
+    }
+
+    public void reset(DecisionProcessState initialState) {
+        remainingTasks.clear();
+        for (Arc task : initialState.remainingTasks) {
         }
     }
 
     /**
-     * Reset a decision process state.
+     * Reset a decision process state as the initial state.
      */
     public void reset() {
         remainingTasks = new LinkedList<>(instance.getTasks());
+        taskRemainingDemandFrac.clear();
         for (Arc task : remainingTasks)
-            task.setRemainingDemandFraction(1);
+            taskRemainingDemandFrac.put(task, 1.0);
         unassignedTasks = new LinkedList<>(remainingTasks);
         solution.reset(instance);
 
@@ -222,8 +263,9 @@ public class DecisionProcessState {
         List<Arc> clonedRemTasks = new LinkedList<>(remainingTasks);
         List<Arc> clonedUasTasks = new LinkedList<>(unassignedTasks);
         Solution<NodeSeqRoute> clonedSol = solution.clone();
+        Map<Arc, Double> clonedTRDF = new HashMap<>(taskRemainingDemandFrac);
 
-
-        return new DecisionProcessState(instance, seed, clonedRemTasks, clonedUasTasks, clonedSol);
+        return new DecisionProcessState(instance, seed,
+                clonedRemTasks, clonedUasTasks, clonedSol, clonedTRDF);
     }
 }

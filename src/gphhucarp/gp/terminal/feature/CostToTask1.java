@@ -20,6 +20,7 @@ public class CostToTask1 extends FeatureGPNode {
     @Override
     public double value(CalcPriorityProblem calcPriorityProblem) {
         Arc candidate = calcPriorityProblem.getCandidate();
+
         List<Arc> taskAdjacentList = calcPriorityProblem.getState()
                 .getTaskAdjacencyList(candidate);
 

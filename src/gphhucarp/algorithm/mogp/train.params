@@ -6,7 +6,7 @@
 # ==============================
 evalthreads = 1
 breedthreads = 1
-seed.0 = 0
+seed.0 = 4
 checkpoint = false
 checkpoint-modulo = 1
 checkpoint-prefix = ec
@@ -17,13 +17,11 @@ checkpoint-prefix = ec
 state = gphhucarp.gp.GPHHEvolutionState
 finish = ec.simple.SimpleFinisher
 exch = ec.simple.SimpleExchanger
-breed =	ec.simple.SimpleBreeder
-eval = ec.simple.SimpleEvaluator
-stat = ec.simple.SimpleStatistics
+breed =	ec.multiobjective.nsga2.NSGA2Breeder
+eval = ec.multiobjective.nsga2.NSGA2Evaluator
+stat = ec.multiobjective.MultiObjectiveStatistics
 stat.file = $job.0.out.stat
-#stat.num-children = 1
-#stat.child.0 = ec.gp.koza.KozaShortStatistics
-#stat.child.0.file = $outtabular.stat
+stat.front = $job.0.front.stat
 
 generations = 51
 quit-on-run-complete = true
@@ -32,8 +30,6 @@ pop = ec.Population
 pop.subpops = 1
 pop.subpop.0 = ec.Subpopulation
 pop.subpop.0.size =	1024
-
-breed.elite.0 = 10
 
 
 # ==============================
@@ -47,9 +43,8 @@ pop.subpop.0.species.ind.numtrees = 1
 pop.subpop.0.species.ind.tree.0 = ec.gp.GPTree
 pop.subpop.0.species.ind.tree.0.tc = tc0
 
-#pop.subpop.0.species.fitness = ec.gp.koza.KozaFitness
-pop.subpop.0.species.fitness = ec.multiobjective.MultiObjectiveFitness
-pop.subpop.0.species.fitness.num-objectives = 1
+pop.subpop.0.species.fitness = ec.multiobjective.nsga2.NSGA2MultiObjectiveFitness
+pop.subpop.0.species.fitness.num-objectives = 2
 pop.subpop.0.species.fitness.maximize = false
 pop.subpop.0.duplicate-retries = 100
 
@@ -185,7 +180,7 @@ gp.adf-stack.context = ec.gp.ADFContext
 # GP function set parameters
 gp.fs.size = 1
 gp.fs.0.name = f0
-gp.fs.0.size = 8
+gp.fs.0.size = 7
 gp.fs.0.func.0 = gputils.terminal.TerminalERCUniform
 gp.fs.0.func.0.nc = nc0
 gp.fs.0.func.1 = gputils.function.Add
@@ -215,12 +210,13 @@ gp.fs.0.func.7.nc = nc3
 # ==============================
 
 eval.problem = gphhucarp.gp.ReactiveGPHHProblem
-eval.problem.pool-filter = gphhucarp.decisionprocess.poolfilter.ExpFeasibleNoRefillPoolFilter
+eval.problem.pool-filter = gphhucarp.decisionprocess.poolfilter.ExpFeasiblePoolFilter
 eval.problem.tie-breaker = gphhucarp.decisionprocess.tiebreaker.SimpleTieBreaker
 eval.problem.data = gputils.DoubleData
 eval.problem.eval-model = gphhucarp.gp.evaluation.ReactiveEvaluationModel
-eval.problem.eval-model.objectives = 1
+eval.problem.eval-model.objectives = 2
 eval.problem.eval-model.objectives.0 = total-cost
+eval.problem.eval-model.objectives.1 = max-route-cost
 eval.problem.eval-model.instances = 1
 eval.problem.eval-model.instances.0.file = gdb/gdb1.dat
 eval.problem.eval-model.instances.0.samples = 5
@@ -231,6 +227,6 @@ eval.problem.eval-model.instances.0.cost-uncertainty-level = 0.2
 # ==============================
 # The GPHH evolution state parameters
 # ==============================
-terminals-from = extended
+terminals-from = basic
 include-erc = true
 rotate-eval-model = true

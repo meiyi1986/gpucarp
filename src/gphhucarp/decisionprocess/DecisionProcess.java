@@ -1,16 +1,16 @@
 package gphhucarp.decisionprocess;
 
+import gphhucarp.algorithm.pilotsearch.PilotSearcher;
+import gphhucarp.algorithm.pilotsearch.event.PilotSearchRefillEvent;
 import gphhucarp.core.Instance;
-import gphhucarp.representation.Solution;
-import gphhucarp.representation.route.NodeSeqRoute;
-import gphhucarp.representation.route.TaskSeqRoute;
 import gphhucarp.decisionprocess.proreactive.ProreativeDecisionProcess;
 import gphhucarp.decisionprocess.proreactive.event.ProreactiveServingEvent;
 import gphhucarp.decisionprocess.reactive.ReactiveDecisionProcess;
 import gphhucarp.decisionprocess.reactive.event.ReactiveRefillEvent;
+import gphhucarp.representation.Solution;
+import gphhucarp.representation.route.NodeSeqRoute;
+import gphhucarp.representation.route.TaskSeqRoute;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.PriorityQueue;
 
 /**
@@ -84,6 +84,7 @@ public abstract class DecisionProcess {
     /**
      * Initialise a proactive-reactive decision process from an instance, a routing policy and a plan.
      * @param instance the given instance.
+     * @param seed the seed.
      * @param routingPolicy the given policy.
      * @param plan the given plan (a task sequence solution).
      * @return the initial proactive-reactive decision process.
@@ -99,6 +100,26 @@ public abstract class DecisionProcess {
                     state.getSolution().getRoute(i), plan.getRoute(i), 0));
 
         return new ProreativeDecisionProcess(state, eventQueue, routingPolicy, plan);
+    }
+
+    /**
+     * Initialise a pilot search decision process.
+     * @param instance the given instance.
+     * @param seed the seed.
+     * @param routingPolicy the routing policy.
+     * @param pilotSearcher the pilot searcher.
+     * @return the initial pilot search decision process.
+     */
+    public static ReactiveDecisionProcess initPilotSearch(Instance instance,
+                                                             long seed,
+                                                             RoutingPolicy routingPolicy,
+                                                             PilotSearcher pilotSearcher) {
+        DecisionProcessState state = new DecisionProcessState(instance, seed);
+        PriorityQueue<DecisionProcessEvent> eventQueue = new PriorityQueue<>();
+        for (NodeSeqRoute route : state.getSolution().getRoutes())
+            eventQueue.add(new PilotSearchRefillEvent(0, route, pilotSearcher));
+
+        return new ReactiveDecisionProcess(state, eventQueue, routingPolicy);
     }
 
     /**

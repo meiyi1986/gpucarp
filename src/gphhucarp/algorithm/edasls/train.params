@@ -66,12 +66,12 @@ select.tournament.size = 7
 # ==============================
 
 eval.problem = gphhucarp.algorithm.edasls.EDASLSProblem
-eval.problem.eval-model = gphhucarp.gp.evaluation.ReactiveEvaluationModel
+eval.problem.eval-model = gphhucarp.gp.evaluation.ProreactiveEvaluationModel
 eval.problem.eval-model.objectives = 1
 eval.problem.eval-model.objectives.0 = total-cost
 eval.problem.eval-model.instances = 1
-eval.problem.eval-model.instances.0.file = gdb/gdb8.dat
-eval.problem.eval-model.instances.0.samples = 10
+eval.problem.eval-model.instances.0.file = gdb/gdb1.dat
+eval.problem.eval-model.instances.0.samples = 5
 eval.problem.eval-model.instances.0.vehicles = from-file
 eval.problem.eval-model.instances.0.demand-uncertainty-level = 0.2
 eval.problem.eval-model.instances.0.cost-uncertainty-level = 0.2

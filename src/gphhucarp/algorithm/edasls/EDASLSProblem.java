@@ -58,8 +58,6 @@ public class EDASLSProblem extends Problem implements SimpleProblemForm {
             chromosome.split(iSamples.getBaseInstance());
 
             for (long seed : iSamples.getSeeds()) {
-                // chromosome.split(iSamples.getBaseInstance(), seed);
-
                 ProreativeDecisionProcess dp =
                         DecisionProcess.initProreactive(iSamples.getBaseInstance(), seed,
                                 new FeasibilityPolicy(), chromosome.getSolution());

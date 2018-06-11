@@ -5,7 +5,9 @@ import gphhucarp.decisionprocess.DecisionProcessEvent;
 import gphhucarp.decisionprocess.DecisionProcessState;
 import gphhucarp.decisionprocess.RoutingPolicy;
 import gphhucarp.decisionprocess.reactive.event.ReactiveRefillEvent;
+import gphhucarp.representation.Solution;
 import gphhucarp.representation.route.NodeSeqRoute;
+import gphhucarp.representation.route.TaskSeqRoute;
 
 import java.util.PriorityQueue;
 
@@ -33,13 +35,11 @@ public class ReactiveDecisionProcess extends DecisionProcess {
             eventQueue.add(new ReactiveRefillEvent(0, route));
     }
 
-//    public List<DecisionSituation> recordFirstDecisionSituations(int numDecisionSituations) {
-//        List<DecisionSituation> decisionSituations = new ArrayList<>();
-//
-//        while (!eventQueue.isEmpty()) {
-//            DecisionProcessEvent event = eventQueue.poll();
-//
-//            event.trigger(this);
-//        }
-//    }
+    @Override
+    protected ReactiveDecisionProcess clone() {
+        DecisionProcessState clonedState = state.clone();
+        PriorityQueue<DecisionProcessEvent> clonedEQ = new PriorityQueue<>(eventQueue);
+
+        return new ReactiveDecisionProcess(clonedState, clonedEQ, routingPolicy);
+    }
 }

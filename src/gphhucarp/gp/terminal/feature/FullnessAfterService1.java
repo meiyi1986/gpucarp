@@ -8,17 +8,19 @@ import gphhucarp.gp.CalcPriorityProblem;
 import gphhucarp.gp.terminal.FeatureGPNode;
 import gphhucarp.representation.route.NodeSeqRoute;
 
+import java.util.List;
+
 /**
- * The cost from the closest feasible alternative route to the candidate task.
+ * The fullness of the closest feasible alternative route after serving the task.
  * If the candidate is the depot loop, return 0 (no need to consider alternative route).
- * If there is no feasible alternative route, return infinity.
- *
+ * If there is no alternative route, return infinity.
  */
 
-public class CostFromRoute1 extends FeatureGPNode {
-    public CostFromRoute1() {
+public class FullnessAfterService1 extends FeatureGPNode {
+
+    public FullnessAfterService1() {
         super();
-        name = "CFR1";
+        name = "FAS1";
     }
 
     @Override
@@ -37,25 +39,35 @@ public class CostFromRoute1 extends FeatureGPNode {
         if (state.getRouteAdjacencyList(candidate).isEmpty())
             return Double.POSITIVE_INFINITY;
 
+        NodeSeqRoute route1 = null;
+
         for (int i = 0; i < state.getRouteAdjacencyList(candidate).size(); i++) {
-            NodeSeqRoute route1 = state.getRouteAdjacencyList(candidate).get(i);
+            route1 = state.getRouteAdjacencyList(candidate).get(i);
 
             // whether the alternative is feasible or not
             if (route1.getDemand() + candidate.getExpectedDemand() <= route1.getCapacity()) {
                 // yes, feasible
-                int nextDecisionNode1 = route1.getNextTask().getTo();
-                return graph.getEstDistance(nextDecisionNode1, candidate.getFrom());
+                break;
             }
             else if (graph.getEstDistance(currNode, candidate.getFrom()) ==
                     graph.getEstDistance(currNode, depot) +
                             graph.getEstDistance(depot, candidate.getFrom())) {
                 // pass depot, so can refill on the way
-                int nextDecisionNode1 = route1.getNextTask().getTo();
-                return graph.getEstDistance(nextDecisionNode1, candidate.getFrom());
+                break;
             }
         }
 
         // no alternative route is feasible
-        return Double.POSITIVE_INFINITY;
+        if (route1 == null)
+            return Double.POSITIVE_INFINITY;
+
+        if (graph.getEstDistance(currNode, candidate.getFrom()) ==
+                graph.getEstDistance(currNode, depot) +
+                        graph.getEstDistance(depot, candidate.getFrom())) {
+            return candidate.getExpectedDemand() / route1.getCapacity();
+        }
+        else {
+            return (route1.getDemand() + candidate.getExpectedDemand()) / route1.getCapacity();
+        }
     }
 }

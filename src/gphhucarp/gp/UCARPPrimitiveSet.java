@@ -12,9 +12,11 @@ public class UCARPPrimitiveSet extends PrimitiveSet {
     /**
      * Return the basic terminals:
      *  - ServeCost
+     *  - CostFromDepot
      *  - CostFromHere
      *  - CostToDepot
      *  - CostRefill
+     *  - DeadheadingCost
      *  - Demand
      *  - RemainingCapacity
      *  - Fullness
@@ -26,9 +28,11 @@ public class UCARPPrimitiveSet extends PrimitiveSet {
         UCARPPrimitiveSet terminalSet = new UCARPPrimitiveSet();
 
         terminalSet.add(new ServeCost());
+        terminalSet.add(new CostFromDepot());
         terminalSet.add(new CostFromHere());
         terminalSet.add(new CostToDepot());
         terminalSet.add(new CostRefill());
+        terminalSet.add(new DeadheadingCost());
         terminalSet.add(new Demand());
         terminalSet.add(new RemainingCapacity());
         terminalSet.add(new Fullness());
@@ -48,7 +52,21 @@ public class UCARPPrimitiveSet extends PrimitiveSet {
         UCARPPrimitiveSet terminalSet = basicTerminalSet();
 
         terminalSet.add(new CostFromRoute1());
-        terminalSet.add(new RemainingCapacity1());
+//        terminalSet.add(new RemainingCapacity1());
+        terminalSet.add(new CostToTask1());
+        terminalSet.add(new Demand1());
+
+        return terminalSet;
+    }
+
+    /**
+     * The terminal set used for generating routes sequentially.
+     * No need to consider other routes.
+     * @return the terminal set.
+     */
+    public static UCARPPrimitiveSet seqTerminalSet() {
+        UCARPPrimitiveSet terminalSet = basicTerminalSet();
+
         terminalSet.add(new CostToTask1());
         terminalSet.add(new Demand1());
 

@@ -213,6 +213,12 @@ public class Instance {
 
     public void calcTaskToTaskMap() {
         taskToTaskMap = new HashMap<>();
+        // add the depot loop dummy task
+        List<Arc> depotLoopAdjacencyList = new LinkedList<>(tasks);
+        Collections.sort(depotLoopAdjacencyList,
+                (o1, o2) -> Double.compare(graph.getEstDistance(depotLoop, o1), graph.getEstDistance(depotLoop, o2)));
+        taskToTaskMap.put(depotLoop, depotLoopAdjacencyList);
+
         for (Arc task : tasks) {
             List<Arc> taskAdjacencyList = new LinkedList<>();
 

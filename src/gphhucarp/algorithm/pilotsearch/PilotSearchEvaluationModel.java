@@ -1,35 +1,33 @@
-package gphhucarp.gp.evaluation;
+package gphhucarp.algorithm.pilotsearch;
 
 import ec.EvolutionState;
 import ec.Fitness;
 import ec.multiobjective.MultiObjectiveFitness;
-import gphhucarp.core.Instance;
+import ec.util.Parameter;
 import gphhucarp.core.InstanceSamples;
 import gphhucarp.core.Objective;
 import gphhucarp.decisionprocess.DecisionProcess;
 import gphhucarp.decisionprocess.RoutingPolicy;
-import gphhucarp.decisionprocess.proreactive.ProreativeDecisionProcess;
 import gphhucarp.decisionprocess.reactive.ReactiveDecisionProcess;
-import gphhucarp.decisionprocess.routingpolicy.FeasibilityPolicy;
+import gphhucarp.gp.evaluation.EvaluationModel;
 import gphhucarp.representation.Solution;
 import gphhucarp.representation.route.NodeSeqRoute;
 import gphhucarp.representation.route.TaskSeqRoute;
 
-/**
- * A proactive-reactive evaluation model is a set of proactive-reactive decision process.
- * It evaluates a proactive-reactive routing policy and a task sequence plan,
- * by applying them on each decision process,
- * and returning the average normalised objective values across the processes.
- *
- * It includes
- *  - A list of proactive-reactive decision processes.
- *  - The reference objective value map, indicating the reference value
- *    of a given decision process and a given objective.
- *
- * Created by gphhucarp on 31/08/17.
- */
+public class PilotSearchEvaluationModel extends EvaluationModel {
+    public static final String PILOT_SEARCHER = "pilot-searcher";
 
-public class ProreactiveEvaluationModel extends EvaluationModel {
+    private PilotSearcher pilotSearcher;
+
+    @Override
+    public void setup(final EvolutionState state, final Parameter base) {
+        super.setup(state, base);
+
+        // read the pilot searcher from parameter
+        Parameter p = base.push(PILOT_SEARCHER);
+        pilotSearcher = (PilotSearcher)(state.parameters.getInstanceForParameter(p,
+                null, PilotSearcher.class));
+    }
 
     @Override
     public void evaluate(RoutingPolicy policy, Solution<TaskSeqRoute> plan,
@@ -39,8 +37,10 @@ public class ProreactiveEvaluationModel extends EvaluationModel {
         int numdps = 0;
         for (InstanceSamples iSamples : instanceSamples) {
             for (long seed : iSamples.getSeeds()) {
-                ProreativeDecisionProcess dp = DecisionProcess.initProreactive(
-                        iSamples.getBaseInstance(), seed, policy, plan);
+                // create a new reactive decision process from the based intance and the seed.
+                ReactiveDecisionProcess dp =
+                        DecisionProcess.initPilotSearch(iSamples.getBaseInstance(),
+                                seed, policy, pilotSearcher);
 
                 dp.run();
                 Solution<NodeSeqRoute> solution = dp.getState().getSolution();
@@ -73,9 +73,10 @@ public class ProreactiveEvaluationModel extends EvaluationModel {
         int numdps = 0;
         for (InstanceSamples iSamples : instanceSamples) {
             for (long seed : iSamples.getSeeds()) {
-                ProreativeDecisionProcess dp = DecisionProcess.initProreactive(
-                        iSamples.getBaseInstance(), seed,
-                        new FeasibilityPolicy(), null);
+                // create a new reactive decision process from the based intance and the seed.
+                ReactiveDecisionProcess dp =
+                        DecisionProcess.initPilotSearch(iSamples.getBaseInstance(),
+                                seed, policy, pilotSearcher);
 
                 dp.run();
                 Solution<NodeSeqRoute> solution = dp.getState().getSolution();

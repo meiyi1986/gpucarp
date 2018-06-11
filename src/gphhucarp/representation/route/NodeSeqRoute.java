@@ -24,6 +24,9 @@ public class NodeSeqRoute extends Route {
     private List<Integer> nodeSequence;
     private List<Double> fracSequence;
 
+    // fields used during the decision process
+    private Arc nextTask; // the next task to serve (depot loop if refilling)
+
     public NodeSeqRoute(double capacity, double demand, double cost,
                         List<Integer> nodeSequence, List<Double> fracSequence) {
         super(capacity, demand, cost);
@@ -49,6 +52,29 @@ public class NodeSeqRoute extends Route {
 
     public double getFraction(int index) {
         return fracSequence.get(index);
+    }
+
+    public Arc getNextTask() {
+        return nextTask;
+    }
+
+    public void setNextTask(Arc nextTask) {
+        this.nextTask = nextTask;
+    }
+
+    /**
+     * Add a node of an instance in a pilot search (not knowing the actual demand and cost)
+     * @param node the node to be added.
+     * @param fraction
+     * @param instance
+     */
+    public void addPilot(int node, double fraction, Instance instance) {
+        Arc arc = instance.getGraph().getArc(currNode(), node);
+
+        nodeSequence.add(node);
+        fracSequence.add(fraction);
+        demand += arc.getExpectedDemand() * fraction;
+        cost += arc.getServeCost() * fraction + arc.getExpectedDeadheadingCost() * (1-fraction);
     }
 
     /**
@@ -119,6 +145,9 @@ public class NodeSeqRoute extends Route {
         List<Integer> clonedNodeSeq = new LinkedList<>(nodeSequence);
         List<Double> clonedFracSeq = new LinkedList<>(fracSequence);
 
-        return new NodeSeqRoute(capacity, demand, cost, clonedNodeSeq, clonedFracSeq);
+        NodeSeqRoute cloned = new NodeSeqRoute(capacity, demand, cost, clonedNodeSeq, clonedFracSeq);
+        cloned.setNextTask(nextTask);
+
+        return cloned;
     }
 }
