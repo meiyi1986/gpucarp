@@ -15,7 +15,7 @@ import java.util.List;
  * It pads the sequence by depot loops to address boundary issues.
  *
  */
-public class EhmSingleInsertion extends EhmLocalSearch {
+public class EDASLSSingleInsertion extends EDASLSLocalSearch {
 
     @Override
     public GiantTaskSequenceIndividual move(EDASLSEvolutionState state, GiantTaskSequenceIndividual curr) {

@@ -17,7 +17,6 @@ import gphhucarp.gp.evaluation.EvaluationModel;
 import java.util.List;
 
 public class EDASLSProblem extends Problem implements SimpleProblemForm {
-
     public static final String P_EVAL_MODEL = "eval-model";
 
     protected EvaluationModel evaluationModel;

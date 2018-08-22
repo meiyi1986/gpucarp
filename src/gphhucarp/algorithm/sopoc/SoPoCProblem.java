@@ -7,6 +7,7 @@ import ec.Problem;
 import ec.coevolve.GroupedProblemForm;
 import ec.gp.GPIndividual;
 import ec.multiobjective.MultiObjectiveFitness;
+import ec.util.Parameter;
 import gphhucarp.algorithm.ccgp.CCGPHHEvolutionState;
 import gphhucarp.algorithm.edasls.EDASLSEvolutionState;
 import gphhucarp.algorithm.edasls.GiantTaskSequenceIndividual;
@@ -24,6 +25,13 @@ import gphhucarp.representation.route.TaskSeqRoute;
 
 import java.util.List;
 
+/**
+ * The SoPoC problem.
+ *
+ * The problem evaluates a baseline solution together with a policy.
+ * The vehicles follow the baseline solution, and at each step the policy decides
+ * whether to go to the depot to refill, or continue.
+ */
 public class SoPoCProblem extends Problem implements GroupedProblemForm {
     public static final String P_EVAL_MODEL = "eval-model";
 
@@ -39,6 +47,16 @@ public class SoPoCProblem extends Problem implements GroupedProblemForm {
 
     public void rotateEvaluationModel() {
         evaluationModel.rotateSeeds();
+    }
+
+    @Override
+    public void setup(final EvolutionState state, final Parameter base) {
+
+        Parameter p = base.push(P_EVAL_MODEL);
+        evaluationModel = (EvaluationModel)(
+                state.parameters.getInstanceForParameter(
+                        p, null, EvaluationModel.class));
+        evaluationModel.setup(state, p);
     }
 
     @Override
@@ -92,9 +110,7 @@ public class SoPoCProblem extends Problem implements GroupedProblemForm {
                 ((MultiObjectiveFitness)(ind[i].fitness)).setObjectives(state, trialFit.objectives);
         }
 
-        // increment the number of fitness evaluations of the current generation
         SoPoCEvolutionState sopocState = (SoPoCEvolutionState)state;
-        sopocState.genFEs[sopocState.generation] ++;
 
         // update the context vector if the fitness is better
         if (trialFit.betterThan(sopocState.getContextFitness())) {

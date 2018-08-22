@@ -1,7 +1,7 @@
-package gphhucarp.algorithm.edasls.localsearch;
+package gphhucarp.algorithm.sopoc.localsearch;
 
-import gphhucarp.algorithm.edasls.EDASLSEvolutionState;
 import gphhucarp.algorithm.edasls.GiantTaskSequenceIndividual;
+import gphhucarp.algorithm.sopoc.SoPoCEvolutionState;
 
 /**
  * The Edge Histogram Matrix (ehm)-based stochastic local search.
@@ -12,7 +12,7 @@ import gphhucarp.algorithm.edasls.GiantTaskSequenceIndividual;
  * neighbours.
  */
 
-public abstract class EhmLocalSearch {
+public abstract class SoPoCLocalSearch {
 
     /**
      * Move one step foward, and return a neighbour no worse than the current solution.
@@ -21,5 +21,5 @@ public abstract class EhmLocalSearch {
      * @return a neighbour no worse than the current solution.
      */
     public abstract GiantTaskSequenceIndividual move(
-            EDASLSEvolutionState state, GiantTaskSequenceIndividual curr);
+            SoPoCEvolutionState state, GiantTaskSequenceIndividual curr);
 }

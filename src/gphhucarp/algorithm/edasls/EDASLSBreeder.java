@@ -159,10 +159,10 @@ public class EDASLSBreeder extends SimpleBreeder {
      */
     public GiantTaskSequenceIndividual stochasticLocalSearch(EDASLSEvolutionState state,
                                                              GiantTaskSequenceIndividual curr) {
-        EhmLocalSearch si = new EhmSingleInsertion();
-        EhmLocalSearch di = new EhmDoubleInsertion();
-        EhmLocalSearch swap = new EhmSwap();
-        EhmLocalSearch twoOpt = new EhmTwoOpt();
+        EDASLSLocalSearch si = new EDASLSSingleInsertion();
+        EDASLSLocalSearch di = new EDASLSDoubleInsertion();
+        EDASLSLocalSearch swap = new EDASLSSwap();
+        EDASLSLocalSearch twoOpt = new EDASLSTwoOpt();
 
         while (true) {
             GiantTaskSequenceIndividual newIndi = curr;

@@ -1,9 +1,10 @@
-package gphhucarp.algorithm.edasls.localsearch;
+package gphhucarp.algorithm.sopoc.localsearch;
 
-import gphhucarp.algorithm.edasls.EDASLSEvolutionState;
-import gphhucarp.algorithm.edasls.EDASLSProblem;
+import ec.Individual;
 import gphhucarp.algorithm.edasls.EdgeHistogramMatrix;
 import gphhucarp.algorithm.edasls.GiantTaskSequenceIndividual;
+import gphhucarp.algorithm.sopoc.SoPoCEvolutionState;
+import gphhucarp.algorithm.sopoc.SoPoCProblem;
 import gphhucarp.core.Arc;
 
 import java.util.LinkedList;
@@ -14,12 +15,24 @@ import java.util.List;
  * It pads the sequence by depot loops to address boundary issues.
  *
  */
-public class EhmSwap extends EhmLocalSearch {
+public class SoPoCSwap extends SoPoCLocalSearch {
 
     @Override
-    public GiantTaskSequenceIndividual move(EDASLSEvolutionState state, GiantTaskSequenceIndividual curr) {
+    public GiantTaskSequenceIndividual move(SoPoCEvolutionState state, GiantTaskSequenceIndividual curr) {
         EdgeHistogramMatrix ehm = state.getEhm();
-        EDASLSProblem problem = (EDASLSProblem)state.evaluator.p_problem;
+        SoPoCProblem problem = (SoPoCProblem)state.evaluator.p_problem;
+
+        Individual[] inds = new Individual[state.population.subpops.length];
+        boolean[] updates = new boolean[state.population.subpops.length];
+
+        // initialise inds as the context vector
+        for(int i = 0; i < state.population.subpops.length; i++) {
+            inds[i] = state.getContext(i);
+            updates[i] = false;
+        }
+
+        // evaluate subpop 0: the baseline solution
+        updates[0] = true;
 
         List<Arc> seq = new LinkedList<>(curr.getTaskSequence());
 
@@ -62,7 +75,10 @@ public class EhmSwap extends EhmLocalSearch {
                 neighbour = curr.clone();
                 neighbour.getTaskSequence().set(origPos-1, task2);
                 neighbour.getTaskSequence().set(targPos-1, task1);
-                problem.evaluate(state, neighbour, 0, 0);
+
+                inds[0] = neighbour;
+                problem.evaluate(state, inds, updates, false, new int[state.population.subpops.length], 0);
+                state.EDASLSFEs[state.generation] ++;
 
                 if (neighbour.fitness.betterThan(curr.fitness))
                     return neighbour;
@@ -80,7 +96,10 @@ public class EhmSwap extends EhmLocalSearch {
                 neighbour = curr.clone();
                 neighbour.getTaskSequence().set(origPos-1, invTask2);
                 neighbour.getTaskSequence().set(targPos-1, task1);
-                problem.evaluate(state, neighbour, 0, 0);
+
+                inds[0] = neighbour;
+                problem.evaluate(state, inds, updates, false, new int[state.population.subpops.length], 0);
+                state.EDASLSFEs[state.generation] ++;
 
                 if (neighbour.fitness.betterThan(curr.fitness))
                     return neighbour;
@@ -98,7 +117,10 @@ public class EhmSwap extends EhmLocalSearch {
                 neighbour = curr.clone();
                 neighbour.getTaskSequence().set(origPos-1, task2);
                 neighbour.getTaskSequence().set(targPos-1, invTask1);
-                problem.evaluate(state, neighbour, 0, 0);
+
+                inds[0] = neighbour;
+                problem.evaluate(state, inds, updates, false, new int[state.population.subpops.length], 0);
+                state.EDASLSFEs[state.generation] ++;
 
                 if (neighbour.fitness.betterThan(curr.fitness))
                     return neighbour;
@@ -116,7 +138,10 @@ public class EhmSwap extends EhmLocalSearch {
                 neighbour = curr.clone();
                 neighbour.getTaskSequence().set(origPos-1, invTask2);
                 neighbour.getTaskSequence().set(targPos-1, invTask1);
-                problem.evaluate(state, neighbour, 0, 0);
+
+                inds[0] = neighbour;
+                problem.evaluate(state, inds, updates, false, new int[state.population.subpops.length], 0);
+                state.EDASLSFEs[state.generation] ++;
 
                 if (neighbour.fitness.betterThan(curr.fitness))
                     return neighbour;

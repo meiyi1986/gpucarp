@@ -4,10 +4,17 @@ import ec.Evaluator;
 import ec.EvolutionState;
 import ec.Individual;
 
+/**
+ * The SoPoC evaluator.
+ *
+ * For evaluating a population, it evaluates each individual in each subpopulation.
+ * This includes each baseline solution in subpop0 and policy in subpop1.
+ */
+
 public class SoPoCEvaluator extends Evaluator {
     @Override
     public void evaluatePopulation(EvolutionState state) {
-        SoPoCEvolutionState soPoCEvolutionState = (SoPoCEvolutionState)state;
+        SoPoCEvolutionState sopocState = (SoPoCEvolutionState)state;
         SoPoCProblem prob = (SoPoCProblem)p_problem;
 
         // do evaluation
@@ -16,7 +23,7 @@ public class SoPoCEvaluator extends Evaluator {
 
         // initialise inds as the context vector
         for(int i = 0; i < state.population.subpops.length; i++) {
-            inds[i] = soPoCEvolutionState.getContext(i);
+            inds[i] = sopocState.getContext(i);
             updates[i] = false;
         }
 
@@ -35,10 +42,11 @@ public class SoPoCEvaluator extends Evaluator {
                 evaluations ++;
             }
 
+            if (i == 0)
+                sopocState.EDASLSFEs[sopocState.generation] += evaluations;
+
             state.output.message("Evaluations: " + evaluations);
         }
-
-
     }
 
     @Override

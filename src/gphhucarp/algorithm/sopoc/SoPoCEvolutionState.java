@@ -2,14 +2,13 @@ package gphhucarp.algorithm.sopoc;
 
 import ec.*;
 import ec.gp.GPIndividual;
-import ec.gp.GPSpecies;
 import ec.multiobjective.MultiObjectiveFitness;
-import ec.simple.SimpleEvolutionState;
 import ec.util.Checkpoint;
 import ec.util.Parameter;
-import gphhucarp.algorithm.edasls.EDASLSProblem;
 import gphhucarp.algorithm.edasls.EdgeHistogramMatrix;
 import gphhucarp.algorithm.edasls.GiantTaskSequenceIndividual;
+import gphhucarp.algorithm.sopoc.localsearch.*;
+import gphhucarp.core.Arc;
 import gphhucarp.core.Instance;
 import gphhucarp.gp.GPHHEvolutionState;
 import gphhucarp.gp.UCARPPrimitiveSet;
@@ -21,9 +20,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
  * The Solution-Policy Co-evolver evolution state.
@@ -33,35 +30,6 @@ import java.util.Map;
  */
 
 public class SoPoCEvolutionState extends GPHHEvolutionState {
-    // the context vector
-    // index 0: baseline solution; index 1: policy
-    private Individual[] contextVector;
-    private MultiObjectiveFitness contextFitness;
-
-    public Individual[] getContextVector() {
-        return contextVector;
-    }
-
-    public void setContextVector(Individual[] contextVector) {
-        this.contextVector = contextVector;
-    }
-
-    public Individual getContext(int index) {
-        return contextVector[index];
-    }
-
-    public void setContext(int index, Individual individual) {
-        contextVector[index] = individual;
-    }
-
-    public MultiObjectiveFitness getContextFitness() {
-        return contextFitness;
-    }
-
-    public void setContextFitness(MultiObjectiveFitness contextFitness) {
-        this.contextFitness = contextFitness;
-    }
-
     /**
      * Statistics
      */
@@ -91,13 +59,17 @@ public class SoPoCEvolutionState extends GPHHEvolutionState {
      */
     public static final String P_ROTATE_EVAL_MODEL = "rotate-eval-model";
 
+    // the context vector
+    // index 0: baseline solution; index 1: policy
+    private Individual[] contextVector;
+    private MultiObjectiveFitness contextFitness;
+
     protected Instance ucarpInstance;
     protected EdgeHistogramMatrix ehm;
-    protected GiantTaskSequenceIndividual bestIndi;
 
     // parameters for EDASLS
-    protected int numFEsPerGen; // maximal number of generations per generation
-    protected int[] genFEs; // the fitness evaluations in each generation
+    public int EDASLSGenFEs; // number of EDASLS evaluations per generation
+    public int[] EDASLSFEs; // the actual EDASLS fitness evaluations in each generation
 
     // parameters for GP
     protected String terminalFrom; // where the terminals are from
@@ -113,6 +85,30 @@ public class SoPoCEvolutionState extends GPHHEvolutionState {
     protected File statFile;
     protected long start, finish;
     protected double duration;
+
+    public Individual[] getContextVector() {
+        return contextVector;
+    }
+
+    public void setContextVector(Individual[] contextVector) {
+        this.contextVector = contextVector;
+    }
+
+    public Individual getContext(int index) {
+        return contextVector[index];
+    }
+
+    public void setContext(int index, Individual individual) {
+        contextVector[index] = individual;
+    }
+
+    public MultiObjectiveFitness getContextFitness() {
+        return contextFitness;
+    }
+
+    public void setContextFitness(MultiObjectiveFitness contextFitness) {
+        this.contextFitness = contextFitness;
+    }
 
     public Instance getUcarpInstance() {
         return ucarpInstance;
@@ -204,7 +200,7 @@ public class SoPoCEvolutionState extends GPHHEvolutionState {
          * Read parameters of EDASLS
          */
         p = new Parameter(P_EDASLS_GEN_FES);
-        numFEsPerGen = parameters.getIntWithDefault(p, null, 1024);
+        EDASLSGenFEs = parameters.getIntWithDefault(p, null, 1024);
 
         /**
          * Read parameters of GP
@@ -243,19 +239,7 @@ public class SoPoCEvolutionState extends GPHHEvolutionState {
         ucarpInstance = problem.evaluationModel.getInstanceSamples().get(0).getBaseInstance();
         ehm = new EdgeHistogramMatrix(ucarpInstance);
 
-        genFEs = new int[numGenerations];
-
-        // initialise the context vector: the policy is initialised as RQ-DEM
-        contextVector = new Individual[2];
-        GPIndividual policy = (GPIndividual)(population.subpops[1].species.newIndividual(this, 0));
-        policy.trees[0] = LispUtils.parseExpression("(- RQ DEM)", UCARPPrimitiveSet.wholePrimitiveSet());
-        contextVector[1] = policy;
-
-        // initialise the context fitness to be infinity (to be minimised)
-        contextFitness = new MultiObjectiveFitness();
-        contextFitness.objectives = new double[problem.getObjectives().size()];
-        for (int i = 0; i < contextFitness.objectives.length; i++)
-            contextFitness.objectives[i] = Double.POSITIVE_INFINITY;
+        EDASLSFEs = new int[numGenerations];
     }
 
     @Override
@@ -277,12 +261,8 @@ public class SoPoCEvolutionState extends GPHHEvolutionState {
         // so no need to re-evaluate the entire population every generation
         evaluator.evaluatePopulation(this);
 
-        // sort the population according to fitness
-        // sorting by fitness is a natural comparator for individuals
+        // sort the individuals in the first subpopulation for EDASLS
         Arrays.sort(population.subpops[0].individuals);
-
-        // update the best individual
-        bestIndi = (GiantTaskSequenceIndividual)population.subpops[0].individuals[0];
 
         int result = R_NOTDONE;
         while ( result == R_NOTDONE ) {
@@ -294,12 +274,6 @@ public class SoPoCEvolutionState extends GPHHEvolutionState {
 
     @Override
     public int evolve() {
-//        for (Pair<Arc, Arc> key : ehm.getMatrix().keySet()) {
-//            if (ehm.getMatrix().get(key) > 10) {
-//                System.out.println(key.getLeft().toSimpleString() + " -> " + key.getRight().toSimpleString() + ": " + ehm.getMatrix().get(key));
-//            }
-//        }
-
         if (generation > 0)
             output.message("Generation " + generation);
 
@@ -323,22 +297,16 @@ public class SoPoCEvolutionState extends GPHHEvolutionState {
         if (exchangerWantsToShutdown!=null)
         {
             output.message(exchangerWantsToShutdown);
-            /*
-             * Don't really know what to return here.  The only place I could
-             * find where runComplete ever returns non-null is
-             * IslandExchange.  However, that can return non-null whether or
-             * not the ideal individual was found (for example, if there was
-             * a communication error with the server).
-             *
-             * Since the original version of this code didn't care, and the
-             * result was initialized to R_SUCCESS before the while loop, I'm
-             * just going to return R_SUCCESS here.
-             */
 
             return R_SUCCESS;
         }
 
-        while (genFEs[generation] < numFEsPerGen) {
+        // BREEDING
+        statistics.preBreedingStatistics(this);
+        /**
+         * Breed the first sub-population by EDASLS
+         */
+        while (EDASLSFEs[generation] < EDASLSGenFEs) {
             // select the first half as the promising individuals
             int numPromisingIndividuals = population.subpops[0].individuals.length / 2;
             GiantTaskSequenceIndividual[] promisingIndividuals =
@@ -351,36 +319,77 @@ public class SoPoCEvolutionState extends GPHHEvolutionState {
             // update the edge histogram matrix
             ehm.updateBy(promisingIndividuals, ucarpInstance);
 
-            // BREEDING
-            statistics.preBreedingStatistics(this);
+            // EDASLS breeding
+            SoPoCProblem problem = (SoPoCProblem)evaluator.p_problem;
+            Subpopulation subpop = population.subpops[0];
 
-            population = breeder.breedPopulation(this);
+            // randomly select an individual as the template
+            int idx = rdg.nextInt(0, subpop.individuals.length-1);
+            GiantTaskSequenceIndividual template =
+                    (GiantTaskSequenceIndividual)subpop.individuals[idx];
 
-            // POST-BREEDING EXCHANGING
-            statistics.postBreedingStatistics(this);
+            // first do the edge histogram sampling
+            GiantTaskSequenceIndividual child =
+                    edgeHistogramSampling(template);
 
-            // POST-BREEDING EXCHANGING
-            statistics.prePostBreedingExchangeStatistics(this);
-            population = exchanger.postBreedingExchangePopulation(this);
-            statistics.postPostBreedingExchangeStatistics(this);
+            // do local search with some probability
+            double r = rdg.nextUniform(0, 1);
+            if (r < 0.1) {
+                GiantTaskSequenceIndividual lsChild = stochasticLocalSearch(child);
+
+                if (lsChild.fitness.betterThan(template.fitness) &&
+                        !isDuplicate(lsChild, subpop.individuals))
+                    // replace the template with the child
+                    subpop.individuals[idx] = lsChild;
+            }
+            else {
+                // evaluate the child
+                Individual[] inds = new Individual[population.subpops.length];
+                boolean[] updates = new boolean[population.subpops.length];
+
+                // initialise inds as the context vector
+                for(int i = 0; i < population.subpops.length; i++) {
+                    inds[i] = contextVector[i];
+                    updates[i] = false;
+                }
+
+                // evaluate subpop 0: the baseline solution
+                inds[0] = child;
+                updates[0] = true;
+
+                problem.evaluate(this, inds, updates, false, new int[population.subpops.length], 0);
+                EDASLSFEs[generation] ++;
+
+                if (child.fitness.betterThan(template.fitness) &&
+                        !isDuplicate(child, subpop.individuals))
+                    // replace the template with the child
+                    subpop.individuals[idx] = child;
+            }
 
             // sort the population according to fitness
             // sorting by fitness is a natural comparator for individuals
             Arrays.sort(population.subpops[0].individuals);
-
-            // update the best individual
-            bestIndi = (GiantTaskSequenceIndividual)population.subpops[0].individuals[0];
         }
 
-        statistics.preEvaluationStatistics(this);
-        statistics.postEvaluationStatistics(this);
+        /**
+         * Evolve the second subpopulation (policy) by SoPoCBreeder
+         */
+        population = breeder.breedPopulation(this);
 
-        finish = util.Timer.getCpuTime();
-        duration = (finish - start) / 1000000000;
+        // POST-BREEDING EXCHANGING
+        statistics.postBreedingStatistics(this);
+
+        // POST-BREEDING EXCHANGING
+        statistics.prePostBreedingExchangeStatistics(this);
+        population = exchanger.postBreedingExchangePopulation(this);
+        statistics.postPostBreedingExchangeStatistics(this);
 
         output.message("Generation " + generation + " elapsed " + duration + " seconds.");
 
         writeToStatFile();
+
+        finish = util.Timer.getCpuTime();
+        duration = 1.0 * (finish - start) / 1000000000;
 
         start = util.Timer.getCpuTime();
 
@@ -396,7 +405,7 @@ public class SoPoCEvolutionState extends GPHHEvolutionState {
 
         // Generate new instances if needed
         if (rotateEvalModel) {
-            EDASLSProblem problem = (EDASLSProblem)evaluator.p_problem;
+            SoPoCProblem problem = (SoPoCProblem)evaluator.p_problem;
             problem.rotateEvaluationModel();
 
             // re-evaluate the population after the evaluation model rotation
@@ -404,5 +413,131 @@ public class SoPoCEvolutionState extends GPHHEvolutionState {
         }
 
         return R_NOTDONE;
+    }
+
+    /**
+     * The sampling based on edge histogram
+     * @param template the template individual
+     * @return the randomly sampled individual
+     */
+    public GiantTaskSequenceIndividual edgeHistogramSampling(GiantTaskSequenceIndividual template) {
+        GiantTaskSequenceIndividual newIndi = template.clone();
+
+        List<Arc> taskSequence = template.getTaskSequence();
+        // split into 2 (set in the paper) segments
+        int[] splitIdx = new int[3];
+        splitIdx[0] = 0;
+        splitIdx[1] = rdg.nextInt(1, taskSequence.size()-1);
+        splitIdx[2] = taskSequence.size();
+
+        // randomly choose one segment
+        int segStart = rdg.nextInt(0, 1);
+        // the segment starts from splitIdx[segStart] and end at splitIdx[segStart+1]-1
+
+        // regenerate the tasks in this segment
+        List<Arc> remainingTasks = new LinkedList<>();
+        for (int i = splitIdx[segStart]; i < splitIdx[segStart+1]; i++) {
+            remainingTasks.add(taskSequence.get(i));
+            remainingTasks.add(taskSequence.get(i).getInverse());
+        }
+
+        Arc curr = ucarpInstance.getDepotLoop();
+        if (segStart > 0)
+            curr = taskSequence.get(splitIdx[segStart]-1);
+
+        for (int i = splitIdx[segStart]; i < splitIdx[segStart+1]; i++) {
+            // roulette wheel selection for the next task
+            double totalHistogram = 0;
+
+            for (Arc task : remainingTasks) {
+                totalHistogram += ehm.getValue(curr, task);
+            }
+
+            double r = -1;
+
+            if (totalHistogram > 0)
+                r = rdg.nextUniform(0, totalHistogram);
+
+            int idx = 0;
+            while (idx < remainingTasks.size()) {
+//                System.out.println(curr.toSimpleString() + " -> " + remainingTasks.get(idx).toSimpleString() + ": " + ehm.getValue(curr, remainingTasks.get(idx)));
+                double histogram = ehm.getValue(curr, remainingTasks.get(idx));
+
+                if (r < histogram)
+                    break;
+
+                r -= histogram;
+                idx ++;
+            }
+
+            Arc next = remainingTasks.get(idx);
+
+            // add next to the sequence of newIndi and set it as the current
+            newIndi.getTaskSequence().set(i, next);
+            curr = next;
+
+            // remove next and its inverse from the remaining tasks
+            remainingTasks.remove(next);
+            remainingTasks.remove(next.getInverse());
+        }
+
+        return newIndi;
+    }
+
+    /**
+     * The stochastic local search
+     * @param curr the current individual
+     * @return the individual after local search
+     */
+    public GiantTaskSequenceIndividual stochasticLocalSearch(GiantTaskSequenceIndividual curr) {
+        SoPoCLocalSearch si = new SoPoCSingleInsertion();
+        SoPoCLocalSearch di = new SoPoCDoubleInsertion();
+        SoPoCLocalSearch swap = new SoPoCSwap();
+        SoPoCLocalSearch twoOpt = new SoPoCTwoOpt();
+
+        while (true) {
+            GiantTaskSequenceIndividual newIndi = curr;
+
+            GiantTaskSequenceIndividual siNeighbour = si.move(this, curr);
+            GiantTaskSequenceIndividual diNeighbour = di.move(this, curr);
+            GiantTaskSequenceIndividual swapNeighbour = swap.move(this, curr);
+            GiantTaskSequenceIndividual twoOptNeighbour = twoOpt.move(this, curr);
+
+            if (siNeighbour.fitness.betterThan(newIndi.fitness))
+                newIndi = siNeighbour;
+
+            if (diNeighbour.fitness.betterThan(newIndi.fitness))
+                newIndi = diNeighbour;
+
+            if (swapNeighbour.fitness.betterThan(newIndi.fitness))
+                newIndi = swapNeighbour;
+
+            if (twoOptNeighbour.fitness.betterThan(newIndi.fitness))
+                newIndi = twoOptNeighbour;
+
+            // no improvement is found
+            if (!newIndi.fitness.betterThan(curr.fitness))
+                break;
+
+            curr = newIndi;
+        }
+
+        return curr;
+    }
+
+    /**
+     * Check whether an individual is a duplicate of any individuals from a set of individuals.
+     * @param indi the checked individual.
+     * @param individuals the individual pool.
+     * @return true inf indi is a duplicate from individuals, and false otherwise.
+     */
+    boolean isDuplicate(GiantTaskSequenceIndividual indi,
+                        Individual[] individuals) {
+        for (Individual x : individuals) {
+            if (indi.equals(x))
+                return true;
+        }
+
+        return false;
     }
 }
