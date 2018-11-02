@@ -1,9 +1,5 @@
 # Instruction for VUW ECS Students
 
-```diff
-- NB: This is ONLY applicable to the students in the School of Engineering and Computer Science, Victoria University of Wellington to run experiments using the School's grid facility. Please ignore this folder if you are not a VUW ECS student.
-```
-
 ***NB: This is ONLY applicable to the students in the School of Engineering and Computer Science, Victoria University of Wellington to run experiments using the School's grid facility. Please ignore this folder if you are not a VUW ECS student.***
 
 1. Read the ECS Grid Tech Notes **carefully**: https://ecs.victoria.ac.nz/Support/TechNoteEcsGrid. Apply your home folder on the Grid server following the instructions of the Tech Notes.
