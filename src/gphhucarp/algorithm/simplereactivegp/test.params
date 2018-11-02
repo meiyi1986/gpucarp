@@ -1,12 +1,16 @@
 # ==============================
 # The training results
 # ==============================
-policy-type = gp-evolved
-#policy-type = manual
+#policy-type = gp-evolved
+policy-type = manual
 
 # for manual policies
-manual-policies = 1
-manual-policies.0 = gphhucarp.decisionprocess.routingpolicy.PathScanning5Policy
+manual-policies = 5
+manual-policies.0 = gphhucarp.decisionprocess.routingpolicy.PathScanning1Policy
+manual-policies.1 = gphhucarp.decisionprocess.routingpolicy.PathScanning2Policy
+manual-policies.2 = gphhucarp.decisionprocess.routingpolicy.PathScanning3Policy
+manual-policies.3 = gphhucarp.decisionprocess.routingpolicy.PathScanning4Policy
+manual-policies.4 = gphhucarp.decisionprocess.routingpolicy.PathScanning5Policy
 
 # for gp-evolved policies
 train-path = /Users/yimei/Dropbox/HHUCARP/
@@ -27,7 +31,7 @@ eval.problem.eval-model = gphhucarp.gp.evaluation.ReactiveEvaluationModel
 eval.problem.eval-model.objectives = 1
 eval.problem.eval-model.objectives.0 = total-cost
 eval.problem.eval-model.instances = 1
-eval.problem.eval-model.instances.0.file = egl/egl-e1-A.dat
+eval.problem.eval-model.instances.0.file = gdb/gdb1.dat
 eval.problem.eval-model.instances.0.samples = 500
 eval.problem.eval-model.instances.0.vehicles = from-file
 eval.problem.eval-model.instances.0.demand-uncertainty-level = 0.2
