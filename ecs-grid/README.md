@@ -1,6 +1,9 @@
 # Instruction for VUW ECS Students
 
-![#f03c15](https://placehold.it/15/f03c15/000000?text=+) `#f03c15`
+```diff
++ this will be highlighted in green
+- this will be highlighted in red
+```
 
 ***![#f03c15](NB: This is ONLY applicable to the students in the School of Engineering and Computer Science, Victoria University of Wellington to run experiments using the School's grid facility. Please ignore this folder if you are not a VUW ECS student.) `#f03c15`***
 
