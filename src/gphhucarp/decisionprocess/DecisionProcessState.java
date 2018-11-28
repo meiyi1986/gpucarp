@@ -238,7 +238,7 @@ public class DecisionProcessState {
 
                 Arc floodTask = instance.getGraph().getArc(curr, next);
 
-                if (floodTask != null && !floodTask.equals(task.getInverse())) {
+                if (floodTask != null && instance.getTasks().contains(floodTask) && !floodTask.equals(task.getInverse())) {
                     floodMap.get(task).add(floodTask);
                     onFloodMap.get(floodTask).add(task);
                 }
